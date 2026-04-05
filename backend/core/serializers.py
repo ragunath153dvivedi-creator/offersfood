@@ -130,10 +130,15 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def get_media_url(self, obj):
         if obj.media_file:
+            url = obj.media_file.url
+            # If it's already a full URL (R2/S3), return as-is
+            if url.startswith("http"):
+                return url
+            # Local file — build full URL
             request = self.context.get("request")
             if request:
-                return request.build_absolute_uri(obj.media_file.url)
-            return obj.media_file.url
+                return request.build_absolute_uri(url)
+            return url
         return None
 
 
