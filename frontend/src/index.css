@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+
+/* Chat bubbles */
+.msg-user { @apply bg-blue-50 border border-blue-100 rounded-2xl rounded-bl-sm; }
+.msg-agent { @apply bg-white border border-gray-200 rounded-2xl rounded-br-sm; }
+.msg-system { @apply bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-sm italic; }

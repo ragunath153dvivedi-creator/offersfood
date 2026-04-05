@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ticketbot
+      POSTGRES_USER: ticketbot
+      POSTGRES_PASSWORD: ticketbot123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py setup_superadmin &&
+        python manage.py seed_services &&
+        daphne -b 0.0.0.0 -p 8000 config.asgi:application
+      "
+    environment:
+      - DATABASE_URL=postgres://ticketbot:ticketbot123@db:5432/ticketbot
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=change-this-in-production
+      - DEBUG=True
+      - ALLOWED_HOSTS=*
+      - CORS_ORIGINS=http://localhost:5173
+      - SUPER_ADMIN_EMAIL=admin@example.com
+      - SUPER_ADMIN_PASSWORD=admin123456
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  telegram-bot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python bot/telegram_bot.py
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DATABASE_URL=postgres://ticketbot:ticketbot123@db:5432/ticketbot
+      - REDIS_URL=redis://redis:6379/0
+      - BACKEND_URL=http://backend:8000
+      - BOT_INTERNAL_KEY=bot-internal-secret
+      - TELEGRAM_BOT_TOKENS=${TELEGRAM_BOT_TOKENS}
+    depends_on:
+      - backend
+
+  health-monitor:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python bot/health_monitor.py
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DATABASE_URL=postgres://ticketbot:ticketbot123@db:5432/ticketbot
+      - REDIS_URL=redis://redis:6379/0
+      - TELEGRAM_WEBHOOK_BASE_URL=${TELEGRAM_WEBHOOK_BASE_URL}
+      - HEALTH_CHECK_INTERVAL=120
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
