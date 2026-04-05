@@ -501,18 +501,33 @@ def _send_media_to_telegram(chat_id, msg):
     token = _get_bot_token()
     if not token or not msg.media_file:
         return
+
     try:
         method_map = {"image": ("sendPhoto", "photo"), "video": ("sendVideo", "video"), "audio": ("sendAudio", "audio"), "document": ("sendDocument", "document")}
         method, file_key = method_map.get(msg.media_type, ("sendDocument", "document"))
-        with open(msg.media_file.path, "rb") as f:
+
+        # Try reading from URL (R2/S3) or local path
+        file_url = msg.media_file.url
+        if file_url.startswith("http"):
+            # Download from R2 first, then send to Telegram
+            file_data = req.get(file_url, timeout=30).content
             req.post(
                 f"https://api.telegram.org/bot{token}/{method}",
                 data={"chat_id": chat_id, "caption": msg.content or ""},
-                files={file_key: (msg.media_filename, f)},
+                files={file_key: (msg.media_filename, file_data)},
                 timeout=30,
             )
-    except Exception:
-        pass
+        else:
+            # Local file
+            with open(msg.media_file.path, "rb") as f:
+                req.post(
+                    f"https://api.telegram.org/bot{token}/{method}",
+                    data={"chat_id": chat_id, "caption": msg.content or ""},
+                    files={file_key: (msg.media_filename, f)},
+                    timeout=30,
+                )
+    except Exception as e:
+        print(f"Send media to telegram failed: {e}")
 
 
 def _broadcast_ticket_update(ticket):
