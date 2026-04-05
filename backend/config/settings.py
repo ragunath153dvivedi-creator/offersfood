@@ -62,26 +62,8 @@ ASGI_APPLICATION = "config.asgi.application"
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 if DATABASE_URL:
-    import re
-    m = re.match(r"postgres://(?P<user>[^:]+):(?P<pass>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)", DATABASE_URL)
-    if m:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": m.group("n"),
-                "USER": m.group("user"),
-                "PASSWORD": m.group("pass"),
-                "HOST": m.group("host"),
-                "PORT": m.group("port"),
-            }
-        }
-    else:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
-            }
-        }
+    import dj_database_url
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL)}
 else:
     DATABASES = {
         "default": {
