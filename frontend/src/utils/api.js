@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.PROD
+  ? 'https://offersfood-production.up.railway.app/api'
+  : '/api';
 
 /**
  * Parse DRF error responses into readable messages.
